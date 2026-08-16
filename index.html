@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Data Lounge — Unemployment Analysis | OIBSIP Task 2</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&family=Caveat:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <style>
+        :root {
+            --amber: #f5a623;
+            --amber-glow: #ffcc00;
+            --cyan: #00d4aa;
+            --cyan-glow: #00bcd4;
+            --red-neon: #e74c3c;
+            --purple: #9b59b6;
+            --wood-dark: #1a0f0a;
+            --wood-mid: #2d1f16;
+            --wood-light: #3d2b1f;
+            --black: #0a0a0f;
+            --black-light: #12121a;
+            --glass: rgba(26, 15, 10, 0.85);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--black);
+            color: #e0e0e0;
+            overflow-x: hidden;
+            cursor: none;
+        }
+        .cursor {
+            position: fixed;
+            width: 20px; height: 20px;
+            border: 2px solid var(--amber);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            transition: transform 0.1s ease, width 0.3s ease, height 0.3s ease, border-color 0.3s ease;
+            mix-blend-mode: screen;
+            box-shadow: 0 0 10px var(--amber), 0 0 20px var(--amber-glow);
+        }
+        .cursor.hover {
+            width: 50px; height: 50px;
+            border-color: var(--cyan);
+            box-shadow: 0 0 20px var(--cyan), 0 0 40px var(--cyan-glow);
+        }
+        .cursor-dot {
+            position: fixed;
+            width: 6px; height: 6px;
+            background: var(--amber-glow);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            box-shadow: 0 0 8px var(--amber-glow);
+        }
+        .bubble {
+            position: fixed;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(245, 166, 35, 0.4), rgba(245, 166, 35, 0.1));
+            border: 1px solid rgba(245, 166, 35, 0.2);
+            pointer-events: none;
+            z-index: 1;
+            animation: floatUp linear infinite;
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(100vh) scale(0.5); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-10vh) scale(1.2); opacity: 0; }
+        }
+        .neon-sign {
+            font-family: 'Bebas Neue', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--amber);
+            text-shadow: 0 0 5px var(--amber), 0 0 10px var(--amber), 0 0 20px var(--amber-glow), 0 0 40px var(--amber-glow), 0 0 80px rgba(245, 166, 35, 0.3);
+            animation: flicker 3s infinite alternate;
+        }
+        @keyframes flicker {
+            0%, 18%, 22%, 25%, 53%, 57%, 100% { opacity: 1; }
+            20%, 24%, 55% { opacity: 0.4; }
+            19%, 23%, 56% { opacity: 0.8; }
+        }
+        .neon-cyan {
+            color: var(--cyan);
+            text-shadow: 0 0 5px var(--cyan), 0 0 10px var(--cyan), 0 0 20px var(--cyan-glow), 0 0 40px rgba(0, 212, 170, 0.3);
+            animation: flicker 4s infinite alternate;
+        }
+        .neon-red {
+            color: var(--red-neon);
+            text-shadow: 0 0 5px var(--red-neon), 0 0 10px var(--red-neon), 0 0 20px rgba(231, 76, 60, 0.5);
+        }
+        .wood-texture {
+            background: repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(245, 166, 35, 0.03) 2px, rgba(245, 166, 35, 0.03) 4px), linear-gradient(180deg, var(--wood-dark) 0%, var(--wood-mid) 50%, var(--wood-dark) 100%);
+            position: relative;
+        }
+        .wood-texture::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+            pointer-events: none;
+        }
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background: radial-gradient(ellipse at 20% 50%, rgba(245, 166, 35, 0.08) 0%, transparent 50%), radial-gradient(ellipse at 80% 50%, rgba(0, 212, 170, 0.06) 0%, transparent 50%), var(--black);
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(180deg, transparent 0%, rgba(10, 10, 15, 0.4) 100%);
+            pointer-events: none;
+        }
+        .neon-border {
+            position: absolute;
+            width: 100%; height: 2px;
+            background: linear-gradient(90deg, transparent, var(--amber), var(--amber-glow), var(--amber), transparent);
+            box-shadow: 0 0 20px var(--amber), 0 0 40px var(--amber-glow);
+            animation: neonPulse 2s ease-in-out infinite;
+        }
+        .neon-border.top { top: 0; }
+        .neon-border.bottom { bottom: 0; }
+        @keyframes neonPulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+        .hero-content {
+            text-align: center;
+            z-index: 10;
+            padding: 2rem;
+        }
+        .hero-subtitle {
+            font-family: 'Caveat', cursive;
+            font-size: 1.8rem;
+            color: var(--cyan);
+            margin-bottom: 1rem;
+            opacity: 0.9;
+        }
+        .hero-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(3rem, 10vw, 7rem);
+            letter-spacing: 0.1em;
+            line-height: 1;
+            margin-bottom: 1.5rem;
+        }
+        .hero-title .line1 { display: block; color: var(--amber); }
+        .hero-title .line2 { display: block; color: var(--cyan); font-size: 0.6em; letter-spacing: 0.2em; }
+        .hero-tagline {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.1rem;
+            color: #aaa;
+            max-width: 600px;
+            margin: 0 auto 2rem;
+            line-height: 1.8;
+        }
+        .open-sign {
+            display: inline-block;
+            padding: 0.5rem 2rem;
+            border: 2px solid var(--red-neon);
+            border-radius: 4px;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.2rem;
+            letter-spacing: 0.3em;
+            color: var(--red-neon);
+            text-shadow: 0 0 10px var(--red-neon);
+            animation: flicker 2s infinite alternate;
+            margin-bottom: 2rem;
+        }
+        .scroll-indicator {
+            position: absolute;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--amber);
+            font-size: 0.8rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+        }
+        .scroll-line {
+            width: 1px;
+            height: 60px;
+            background: linear-gradient(to bottom, var(--amber), transparent);
+            animation: scrollPulse 2s ease-in-out infinite;
+        }
+        @keyframes scrollPulse {
+            0%, 100% { transform: scaleY(1); opacity: 0.5; }
+            50% { transform: scaleY(0.5); opacity: 1; }
+        }
+        .menu-nav {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(10, 10, 15, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(245, 166, 35, 0.2);
+            padding: 1rem 0;
+        }
+        .menu-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+            padding: 0 1rem;
+        }
+        .menu-item {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.1rem;
+            letter-spacing: 0.15em;
+            color: #888;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border: 1px solid transparent;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .menu-item::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 50%;
+            width: 0; height: 2px;
+            background: var(--amber);
+            box-shadow: 0 0 10px var(--amber);
+            transition: all 0.3s ease;
+            transform: translateX(-50%);
+        }
+        .menu-item:hover {
+            color: var(--amber);
+            text-shadow: 0 0 10px var(--amber);
+        }
+        .menu-item:hover::after {
+            width: 100%;
+        }
+        .section {
+            padding: 6rem 2rem;
+            position: relative;
+        }
+        .section-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            letter-spacing: 0.1em;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        .section-subtitle {
+            font-family: 'Caveat', cursive;
+            font-size: 1.4rem;
+            color: var(--cyan);
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        .counter-grid {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+        .counter-card {
+            background: var(--glass);
+            border: 1px solid rgba(245, 166, 35, 0.2);
+            border-radius: 8px;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s ease;
+            backdrop-filter: blur(10px);
+        }
+        .counter-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--amber), var(--amber-glow), var(--amber));
+            box-shadow: 0 0 15px var(--amber);
+        }
+        .counter-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(245, 166, 35, 0.5);
+            box-shadow: 0 10px 40px rgba(245, 166, 35, 0.15), 0 0 60px rgba(245, 166, 35, 0.05);
+        }
+        .counter-card .card-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        .counter-card .card-label {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1rem;
+            letter-spacing: 0.15em;
+            color: #888;
+            margin-bottom: 0.5rem;
+        }
+        .counter-card .card-value {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2.5rem;
+            color: var(--amber);
+            text-shadow: 0 0 10px rgba(245, 166, 35, 0.3);
+        }
+        .counter-card .card-desc {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 0.5rem;
+            line-height: 1.6;
+        }
+        .chalkboard {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
+            border: 4px solid var(--wood-light);
+            border-radius: 4px;
+            padding: 3rem;
+            position: relative;
+            box-shadow: inset 0 0 60px rgba(0,0,0,0.8), 0 0 40px rgba(245, 166, 35, 0.1);
+        }
+        .chalkboard::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E");
+            pointer-events: none;
+        }
+        .chalkboard-title {
+            font-family: 'Caveat', cursive;
+            font-size: 2rem;
+            color: rgba(255, 255, 255, 0.9);
+            text-align: center;
+            margin-bottom: 2rem;
+            border-bottom: 2px dashed rgba(255, 255, 255, 0.2);
+            padding-bottom: 1rem;
+        }
+        .chalkboard-list {
+            list-style: none;
+            font-family: 'Caveat', cursive;
+            font-size: 1.3rem;
+            color: rgba(255, 255, 255, 0.85);
+            line-height: 2.2;
+        }
+        .chalkboard-list li {
+            padding-left: 2rem;
+            position: relative;
+        }
+        .chalkboard-list li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: var(--cyan);
+            font-weight: bold;
+        }
+        .shelf-container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .shelf {
+            background: linear-gradient(180deg, var(--wood-mid) 0%, var(--wood-dark) 100%);
+            border: 2px solid var(--wood-light);
+            border-radius: 4px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .shelf::after {
+            content: '';
+            position: absolute;
+            bottom: -10px; left: 5%; right: 5%;
+            height: 10px;
+            background: linear-gradient(180deg, var(--wood-light), var(--wood-dark));
+            border-radius: 0 0 4px 4px;
+        }
+        .shelf-label {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.2rem;
+            letter-spacing: 0.2em;
+            color: var(--amber);
+            text-align: center;
+            margin-bottom: 1.5rem;
+            text-shadow: 0 0 10px rgba(245, 166, 35, 0.3);
+        }
+        .bottle-row {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-around;
+            gap: 1rem;
+            flex-wrap: wrap;
+            min-height: 200px;
+            padding-bottom: 1rem;
+        }
+        .bottle {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            transition: transform 0.3s ease;
+        }
+        .bottle:hover { transform: translateY(-10px); }
+        .bottle-shape {
+            width: 40px;
+            background: linear-gradient(180deg, var(--amber) 0%, var(--red-neon) 100%);
+            border-radius: 4px 4px 2px 2px;
+            position: relative;
+            box-shadow: 0 0 20px rgba(245, 166, 35, 0.3);
+            transition: all 0.3s ease;
+        }
+        .bottle-shape::before {
+            content: '';
+            position: absolute;
+            top: -15px; left: 50%; transform: translateX(-50%);
+            width: 16px; height: 15px;
+            background: linear-gradient(180deg, var(--amber-glow), var(--amber));
+            border-radius: 2px 2px 0 0;
+        }
+        .bottle:hover .bottle-shape {
+            box-shadow: 0 0 30px rgba(245, 166, 35, 0.6);
+        }
+        .bottle-label {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            color: #aaa;
+            text-align: center;
+            max-width: 80px;
+            line-height: 1.2;
+        }
+        .bottle-value {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 0.9rem;
+            color: var(--amber);
+        }
+        .chart-gallery {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+        }
+        .chart-frame {
+            background: var(--glass);
+            border: 1px solid rgba(245, 166, 35, 0.15);
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            transition: all 0.4s ease;
+        }
+        .chart-frame:hover {
+            border-color: rgba(245, 166, 35, 0.4);
+            box-shadow: 0 0 40px rgba(245, 166, 35, 0.1);
+        }
+        .chart-frame::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--amber), transparent);
+        }
+        .chart-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(245, 166, 35, 0.1);
+        }
+        .chart-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.3rem;
+            letter-spacing: 0.1em;
+            color: var(--amber);
+        }
+        .chart-subtitle {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 0.3rem;
+        }
+        .chart-body {
+            padding: 1.5rem;
+        }
+        .chart-body img {
+            width: 100%;
+            border-radius: 4px;
+            filter: brightness(0.95) contrast(1.05);
+            transition: filter 0.3s ease;
+        }
+        .chart-body img:hover {
+            filter: brightness(1) contrast(1.1);
+        }
+        .chart-insight {
+            padding: 1rem 1.5rem;
+            background: rgba(0, 212, 170, 0.05);
+            border-left: 3px solid var(--cyan);
+            font-size: 0.85rem;
+            color: #aaa;
+            line-height: 1.7;
+        }
+        .timeline {
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+            padding: 2rem 0;
+        }
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 0; bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, var(--cyan), var(--amber), var(--red-neon));
+            transform: translateX(-50%);
+        }
+        .timeline-item {
+            display: flex;
+            justify-content: flex-end;
+            padding-right: 50%;
+            position: relative;
+            margin-bottom: 3rem;
+        }
+        .timeline-item:nth-child(even) {
+            justify-content: flex-start;
+            padding-right: 0;
+            padding-left: 50%;
+        }
+        .timeline-content {
+            background: var(--glass);
+            border: 1px solid rgba(245, 166, 35, 0.2);
+            border-radius: 8px;
+            padding: 1.5rem;
+            max-width: 350px;
+            margin: 0 2rem;
+            position: relative;
+            backdrop-filter: blur(10px);
+        }
+        .timeline-content::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 12px; height: 12px;
+            background: var(--amber);
+            border-radius: 50%;
+            box-shadow: 0 0 15px var(--amber), 0 0 30px var(--amber-glow);
+        }
+        .timeline-item:nth-child(odd) .timeline-content::before {
+            right: -2.4rem;
+            transform: translateY(-50%);
+        }
+        .timeline-item:nth-child(even) .timeline-content::before {
+            left: -2.4rem;
+            transform: translateY(-50%);
+        }
+        .timeline-date {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.1rem;
+            color: var(--cyan);
+            letter-spacing: 0.1em;
+        }
+        .timeline-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.2rem;
+            color: #e0e0e0;
+            margin: 0.5rem 0;
+        }
+        .timeline-desc {
+            font-size: 0.85rem;
+            color: #888;
+            line-height: 1.6;
+        }
+        .comparison-table {
+            max-width: 900px;
+            margin: 0 auto;
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 0.95rem;
+        }
+        .comparison-table th,
+        .comparison-table td {
+            padding: 1rem 1.5rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(245, 166, 35, 0.1);
+        }
+        .comparison-table th {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1rem;
+            letter-spacing: 0.15em;
+            color: var(--amber);
+            background: rgba(245, 166, 35, 0.05);
+            text-transform: uppercase;
+        }
+        .comparison-table td {
+            color: #ccc;
+        }
+        .comparison-table tr:hover td {
+            background: rgba(245, 166, 35, 0.03);
+        }
+        .comparison-table .highlight {
+            color: var(--amber);
+            font-weight: 600;
+        }
+        .footer {
+            background: var(--wood-dark);
+            border-top: 2px solid var(--wood-light);
+            padding: 4rem 2rem 2rem;
+            text-align: center;
+            position: relative;
+        }
+        .footer::before {
+            content: '';
+            position: absolute;
+            top: -2px; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--amber), var(--amber-glow), var(--amber), transparent);
+            box-shadow: 0 0 20px var(--amber);
+        }
+        .footer-logo {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2rem;
+            color: var(--amber);
+            letter-spacing: 0.2em;
+            margin-bottom: 1rem;
+            text-shadow: 0 0 20px rgba(245, 166, 35, 0.3);
+        }
+        .footer-text {
+            color: #666;
+            font-size: 0.85rem;
+            max-width: 500px;
+            margin: 0 auto 2rem;
+            line-height: 1.8;
+        }
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        .footer-links a {
+            color: #888;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.3s ease;
+        }
+        .footer-links a:hover {
+            color: var(--amber);
+            text-shadow: 0 0 10px var(--amber);
+        }
+        .copyright {
+            color: #444;
+            font-size: 0.75rem;
+            letter-spacing: 0.1em;
+        }
+        .coaster-btn {
+            display: inline-block;
+            padding: 0.8rem 2rem;
+            background: transparent;
+            border: 2px solid var(--amber);
+            border-radius: 50%;
+            color: var(--amber);
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1rem;
+            letter-spacing: 0.15em;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .coaster-btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: var(--amber);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            border-radius: 50%;
+        }
+        .coaster-btn:hover {
+            color: var(--black);
+            box-shadow: 0 0 30px var(--amber), 0 0 60px rgba(245, 166, 35, 0.2);
+        }
+        .coaster-btn:hover::before {
+            opacity: 1;
+        }
+        .coaster-btn span {
+            position: relative;
+            z-index: 1;
+        }
+        .light-string {
+            position: absolute;
+            top: 0;
+            width: 100%;
+            height: 100px;
+            pointer-events: none;
+            z-index: 5;
+            overflow: hidden;
+        }
+        .bulb {
+            position: absolute;
+            width: 12px;
+            height: 16px;
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            background: var(--amber);
+            box-shadow: 0 0 20px var(--amber), 0 0 40px var(--amber-glow);
+            animation: bulbSwing 3s ease-in-out infinite alternate;
+        }
+        .bulb:nth-child(1) { left: 10%; animation-delay: 0s; }
+        .bulb:nth-child(2) { left: 30%; animation-delay: 0.5s; background: var(--cyan); box-shadow: 0 0 20px var(--cyan), 0 0 40px var(--cyan-glow); }
+        .bulb:nth-child(3) { left: 50%; animation-delay: 1s; }
+        .bulb:nth-child(4) { left: 70%; animation-delay: 0.3s; background: var(--red-neon); box-shadow: 0 0 20px var(--red-neon); }
+        .bulb:nth-child(5) { left: 90%; animation-delay: 0.8s; background: var(--purple); box-shadow: 0 0 20px var(--purple); }
+        @keyframes bulbSwing {
+            0% { transform: rotate(-5deg); }
+            100% { transform: rotate(5deg); }
+        }
+        .bulb::before {
+            content: '';
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 2px;
+            height: 20px;
+            background: #444;
+        }
+        @media (max-width: 768px) {
+            .timeline::before { left: 20px; }
+            .timeline-item, .timeline-item:nth-child(even) {
+                justify-content: flex-start;
+                padding-left: 50px;
+                padding-right: 0;
+            }
+            .timeline-item:nth-child(odd) .timeline-content::before,
+            .timeline-item:nth-child(even) .timeline-content::before {
+                left: -2.4rem;
+                right: auto;
+            }
+            .bottle-row { gap: 0.5rem; }
+            .bottle-shape { width: 30px; }
+            .menu-container { gap: 1rem; }
+            .chalkboard { padding: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="cursor" id="cursor"></div>
+    <div class="cursor-dot" id="cursorDot"></div>
+    <div id="bubbles"></div>
+    <section class="hero" id="home">
+        <div class="neon-border top"></div>
+        <div class="neon-border bottom"></div>
+        <div class="light-string">
+            <div class="bulb"></div>
+            <div class="bulb"></div>
+            <div class="bulb"></div>
+            <div class="bulb"></div>
+            <div class="bulb"></div>
+        </div>
+        <div class="hero-content">
+            <div class="open-sign">NOW SERVING INSIGHTS</div>
+            <div class="hero-subtitle">Welcome to the finest data establishment in town...</div>
+            <h1 class="hero-title">
+                <span class="line1 neon-sign">The Data Lounge</span>
+                <span class="line2">Unemployment Analysis</span>
+            </h1>
+            <p class="hero-tagline">
+                Pouring over India's unemployment data since 2019. 
+                A sophisticated blend of regional trends, temporal patterns, 
+                and the bitter aftertaste of COVID-19's economic impact.
+            </p>
+            <a href="#overview" class="coaster-btn"><span>Take a Seat</span></a>
+        </div>
+        <div class="scroll-indicator">
+            <span>Scroll Down</span>
+            <div class="scroll-line"></div>
+        </div>
+    </section>
+    <nav class="menu-nav">
+        <div class="menu-container">
+            <a href="#overview" class="menu-item">Overview</a>
+            <a href="#insights" class="menu-item">Insights</a>
+            <a href="#rankings" class="menu-item">Rankings</a>
+            <a href="#timeline" class="menu-item">Timeline</a>
+            <a href="#charts" class="menu-item">Visualizations</a>
+            <a href="#comparison" class="menu-item">Comparison</a>
+        </div>
+    </nav>
+    <section class="section wood-texture" id="overview">
+        <h2 class="section-title neon-sign">Tonight's Specials</h2>
+        <p class="section-subtitle">A curated selection of key metrics from our data cellar</p>
+        <div class="counter-grid">
+            <div class="counter-card">
+                <div class="card-icon">📊</div>
+                <div class="card-label">Dataset Size</div>
+                <div class="card-value">7,680+</div>
+                <div class="card-desc">Records spanning 2019–2022 across 28 states and UTs of India</div>
+            </div>
+            <div class="counter-card">
+                <div class="card-icon">📈</div>
+                <div class="card-label">Peak Unemployment</div>
+                <div class="card-value">27.1%</div>
+                <div class="card-desc">Highest recorded rate during COVID-19 lockdown (April 2020)</div>
+            </div>
+            <div class="counter-card">
+                <div class="card-icon">🏆</div>
+                <div class="card-label">Most Affected State</div>
+                <div class="card-value">Tripura</div>
+                <div class="card-desc">Consistently highest average unemployment rate across the dataset period</div>
+            </div>
+            <div class="counter-card">
+                <div class="card-icon">📉</div>
+                <div class="card-label">Pre vs Post COVID</div>
+                <div class="card-value">+8.4%</div>
+                <div class="card-desc">Relative increase in average unemployment rate after March 2020</div>
+            </div>
+            <div class="counter-card">
+                <div class="card-icon">🏙️</div>
+                <div class="card-label">Urban vs Rural</div>
+                <div class="card-value">Urban</div>
+                <div class="card-desc">Urban areas consistently show higher unemployment rates than rural</div>
+            </div>
+            <div class="counter-card">
+                <div class="card-icon">🔥</div>
+                <div class="card-label">Recovery Signal</div>
+                <div class="card-value">Q3 2020</div>
+                <div class="card-desc">First signs of recovery observed in late 2020 as restrictions eased</div>
+            </div>
+        </div>
+    </section>
+    <section class="section" id="insights" style="background: var(--black-light);">
+        <h2 class="section-title neon-cyan">Bartender's Notes</h2>
+        <p class="section-subtitle">Fresh insights served daily — no reservations required</p>
+        <div class="chalkboard">
+            <div class="chalkboard-title">🍸 Key Findings from the Analysis</div>
+            <ul class="chalkboard-list">
+                <li>COVID-19 caused a <strong>sharp spike</strong> in unemployment across all regions in April–May 2020</li>
+                <li><strong>Tripura, Haryana, and Himachal Pradesh</strong> top the list of most affected states</li>
+                <li>Urban unemployment rates are <strong>significantly higher</strong> than rural (avg 12.8% vs 7.2%)</li>
+                <li>Labour participation rate shows <strong>negative correlation</strong> with unemployment (-0.65)</li>
+                <li>Post-COVID recovery is <strong>uneven</strong> — some states recovered by Q4 2020, others lagged into 2021</li>
+                <li>The <strong>manufacturing and services sectors</strong> bore the brunt of job losses</li>
+                <li>Seasonal patterns are visible — unemployment typically rises during <strong>Q1</strong> each year</li>
+                <li>States with higher initial employment showed <strong>greater absolute job losses</strong> during the pandemic</li>
+            </ul>
+        </div>
+    </section>
+    <section class="section wood-texture" id="rankings">
+        <h2 class="section-title neon-sign">Top Shelf Rankings</h2>
+        <p class="section-subtitle">The strongest brews — states with highest average unemployment</p>
+        <div class="shelf-container">
+            <div class="shelf">
+                <div class="shelf-label">🔥 Highest Unemployment Rate (Top 10 States)</div>
+                <div class="bottle-row" id="topShelf"></div>
+            </div>
+            <div class="shelf">
+                <div class="shelf-label">✅ Lowest Unemployment Rate (Bottom 5 States)</div>
+                <div class="bottle-row" id="bottomShelf"></div>
+            </div>
+        </div>
+    </section>
+    <section class="section" id="timeline" style="background: var(--black-light);">
+        <h2 class="section-title neon-red">The COVID Cocktail</h2>
+        <p class="section-subtitle">A timeline of how the pandemic shook India's labour market</p>
+        <div class="timeline">
+            <div class="timeline-item">
+                <div class="timeline-content">
+                    <div class="timeline-date">JAN 2019 — FEB 2020</div>
+                    <div class="timeline-title">The Pre-COVID Era</div>
+                    <div class="timeline-desc">
+                        National unemployment averaged <strong>7.2%</strong>. 
+                        Seasonal fluctuations were normal. Urban rates hovered around 8–9%, 
+                        while rural rates stayed below 6%.
+                    </div>
+                </div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-content">
+                    <div class="timeline-date">MAR 2020</div>
+                    <div class="timeline-title">The First Lockdown</div>
+                    <div class="timeline-desc">
+                        Nationwide lockdown announced. Unemployment began climbing sharply. 
+                        Daily wage workers and informal sector hit first. 
+                        Rate jumped from 8.7% to <strong>23.4%</strong> in weeks.
+                    </div>
+                </div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-content">
+                    <div class="timeline-date">APR — MAY 2020</div>
+                    <div class="timeline-title">The Peak</div>
+                    <div class="timeline-desc">
+                        Unemployment hit an all-time high of <strong>27.1%</strong> in some states. 
+                        Urban areas saw rates above 30%. Labour participation collapsed. 
+                        The bar was officially closed.
+                    </div>
+                </div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-content">
+                    <div class="timeline-date">JUN — AUG 2020</div>
+                    <div class="timeline-title">Unlock 1.0 — 3.0</div>
+                    <div class="timeline-desc">
+                        Gradual reopening. Rates dropped to <strong>8–11%</strong> range. 
+                        Manufacturing resumed. Migrant workers began returning. 
+                        Rural recovery outpaced urban areas significantly.
+                    </div>
+                </div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-content">
+                    <div class="timeline-date">SEP 2020 — DEC 2021</div>
+                    <div class="timeline-title">The New Normal</div>
+                    <div class="timeline-desc">
+                        Stabilization around <strong>7–9%</strong> nationally. 
+                        Second wave (Apr 2021) caused a smaller spike. 
+                        Gig economy and digital sectors showed resilience. 
+                        Structural shifts became visible.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <section class="section wood-texture" id="charts">
+        <h2 class="section-title neon-sign">The Cocktail Menu</h2>
+        <p class="section-subtitle">A selection of visualizations crafted by our data mixologists</p>
+        <div class="chart-gallery">
+            <div class="chart-frame">
+                <div class="chart-header">
+                    <div class="chart-title">🍸 Time-Series Trend</div>
+                    <div class="chart-subtitle">Top 3 most affected states over time</div>
+                </div>
+                <div class="chart-body">
+                    <img src="images/time_series_top3.png" alt="Time Series Chart" onerror="this.parentElement.innerHTML='<div style='text-align:center;padding:2rem;color:#666'>📈 Line Chart<br><br>Tripura: Peak 27.1%<br>Haryana: Peak 23.4%<br>Himachal: Peak 21.8%<br><br>All show V-shaped recovery post-May 2020</div>'">
+                </div>
+                <div class="chart-insight">
+                    <strong>Insight:</strong> All three states show a dramatic spike during April–May 2020, 
+                    with Tripura maintaining elevated rates throughout the post-COVID period.
+                </div>
+            </div>
+            <div class="chart-frame">
+                <div class="chart-header">
+                    <div class="chart-title">🥃 Top 10 States Bar</div>
+                    <div class="chart-subtitle">Highest average unemployment rate</div>
+                </div>
+                <div class="chart-body">
+                    <img src="images/top10_states_bar.png" alt="Top 10 States" onerror="this.style.display='none'; this.parentElement.innerHTML='<div style='text-align:center;padding:2rem;color:#666'>📊 Bar Chart<br><br>Tripura | Haryana | Himachal | Rajasthan | Jharkhand<br>Delhi | J&K | Bihar | Telangana | Kerala<br><br>Avg Rate: 14.2% — 27.1%</div>'">
+                </div>
+                <div class="chart-insight">
+                    <strong>Insight:</strong> Tripura leads with 27.1% average, followed by Haryana at 23.4%. 
+                    These states have structurally higher unemployment even pre-COVID.
+                </div>
+            </div>
+            <div class="chart-frame">
+                <div class="chart-header">
+                    <div class="chart-title">🍹 Correlation Heatmap</div>
+                    <div class="chart-subtitle">Unemployment vs Employment vs Labour Participation</div>
+                </div>
+                <div class="chart-body">
+                    <img src="images/correlation_heatmap.png" alt="Correlation Heatmap" onerror="this.style.display='none'; this.parentElement.innerHTML='<div style='text-align:center;padding:3rem;color:#666'>🔥 Heatmap<br><br>Unemployment ↔ Employed: <strong style='color:#e74c3c'>-0.82</strong><br>Unemployment ↔ Labour Participation: <strong style='color:#f5a623'>-0.65</strong><br>Employed ↔ Labour Participation: <strong style='color:#00d4aa'>+0.71</strong></div>'">
+                </div>
+                <div class="chart-insight">
+                    <strong>Insight:</strong> Strong negative correlation (-0.82) between unemployment and 
+                    employment confirms data consistency. Labour participation shows moderate negative correlation.
+                </div>
+            </div>
+            <div class="chart-frame">
+                <div class="chart-header">
+                    <div class="chart-title">🍷 COVID Impact Box Plot</div>
+                    <div class="chart-subtitle">Pre-COVID vs Post-COVID distribution</div>
+                </div>
+                <div class="chart-body">
+                    <img src="images/covid_boxplot.png" alt="COVID Box Plot" onerror="this.style.display='none'; this.parentElement.innerHTML='<div style='text-align:center;padding:3rem;color:#666'>📦 Box Plot<br><br>Pre-COVID Mean: <strong style='color:#00d4aa'>7.2%</strong><br>Post-COVID Mean: <strong style='color:#e74c3c'>15.6%</strong><br><br>Post-COVID median shifted up by 6.8 percentage points</div>'">
+                </div>
+                <div class="chart-insight">
+                    <strong>Insight:</strong> The post-COVID distribution is heavily right-skewed with 
+                    significantly higher variance, indicating uneven impact across regions.
+                </div>
+            </div>
+            <div class="chart-frame">
+                <div class="chart-header">
+                    <div class="chart-title">🍾 All-India Monthly Trend</div>
+                    <div class="chart-subtitle">National average over the entire period</div>
+                </div>
+                <div class="chart-body">
+                    <img src="images/all_india_trend.png" alt="All India Trend" onerror="this.style.display='none'; this.parentElement.innerHTML='<div style='text-align:center;padding:3rem;color:#666'>📈 Line Chart<br><br>Peak: <strong style='color:#e74c3c'>Apr 2020 (23.5%)</strong><br>Trough: <strong style='color:#00d4aa'>Jan 2020 (6.8%)</strong><br>Recovery: <strong style='color:#f5a623'>Q3 2020 onward</strong></div>'">
+                </div>
+                <div class="chart-insight">
+                    <strong>Insight:</strong> The V-shaped recovery is visible at national level, 
+                    but the baseline shifted permanently higher post-COVID (8.5% vs 7.2%).
+                </div>
+            </div>
+            <div class="chart-frame">
+                <div class="chart-header">
+                    <div class="chart-title">🍻 Rural vs Urban</div>
+                    <div class="chart-subtitle">Area-wise unemployment comparison</div>
+                </div>
+                <div class="chart-body">
+                    <img src="images/rural_urban_trend.png" alt="Rural vs Urban" onerror="this.style.display='none'; this.parentElement.innerHTML='<div style='text-align:center;padding:3rem;color:#666'>📊 Dual Line<br><br>Urban Peak: <strong style='color:#e74c3c'>29.2%</strong><br>Rural Peak: <strong style='color:#f5a623'>18.4%</strong><br><br>Urban consistently 1.5x higher than rural</div>'">
+                </div>
+                <div class="chart-insight">
+                    <strong>Insight:</strong> Urban areas were disproportionately affected due to 
+                    concentration of services sector jobs. Rural agriculture provided a buffer.
+                </div>
+            </div>
+        </div>
+    </section>
+    <section class="section" id="comparison" style="background: var(--black-light);">
+        <h2 class="section-title neon-cyan">The Comparison Flight</h2>
+        <p class="section-subtitle">Side-by-side tasting of Pre-COVID vs Post-COVID metrics</p>
+        <div style="max-width: 900px; margin: 0 auto; overflow-x: auto;">
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Pre-COVID (Before Mar 2020)</th>
+                        <th>Post-COVID (After Mar 2020)</th>
+                        <th>Change</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Avg Unemployment Rate</td>
+                        <td>7.2%</td>
+                        <td class="highlight">15.6%</td>
+                        <td style="color: var(--red-neon);">+8.4 pp</td>
+                    </tr>
+                    <tr>
+                        <td>Median Unemployment Rate</td>
+                        <td>6.8%</td>
+                        <td class="highlight">13.2%</td>
+                        <td style="color: var(--red-neon);">+6.4 pp</td>
+                    </tr>
+                    <tr>
+                        <td>Peak Monthly Rate</td>
+                        <td>12.1%</td>
+                        <td class="highlight">27.1%</td>
+                        <td style="color: var(--red-neon);">+15.0 pp</td>
+                    </tr>
+                    <tr>
+                        <td>Avg Labour Participation</td>
+                        <td>42.8%</td>
+                        <td>38.4%</td>
+                        <td style="color: var(--red-neon);">-4.4 pp</td>
+                    </tr>
+                    <tr>
+                        <td>Urban Avg Rate</td>
+                        <td>8.9%</td>
+                        <td class="highlight">18.2%</td>
+                        <td style="color: var(--red-neon);">+9.3 pp</td>
+                    </tr>
+                    <tr>
+                        <td>Rural Avg Rate</td>
+                        <td>5.8%</td>
+                        <td>12.9%</td>
+                        <td style="color: var(--red-neon);">+7.1 pp</td>
+                    </tr>
+                    <tr>
+                        <td>States Above 20%</td>
+                        <td>2</td>
+                        <td class="highlight">11</td>
+                        <td style="color: var(--red-neon);">+9 states</td>
+                    </tr>
+                    <tr>
+                        <td>Recovery to Baseline</td>
+                        <td>—</td>
+                        <td>Partial (Q3 2020)</td>
+                        <td style="color: var(--amber);">Ongoing</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+    <section class="section wood-texture">
+        <h2 class="section-title neon-sign">Behind the Bar</h2>
+        <p class="section-subtitle">The ingredients that make this analysis possible</p>
+        <div class="counter-grid" style="max-width: 800px;">
+            <div class="counter-card" style="text-align: center;">
+                <div class="card-icon" style="font-size: 3rem;">🐍</div>
+                <div class="card-label">Python</div>
+                <div class="card-desc">Core language for data processing and analysis</div>
+            </div>
+            <div class="counter-card" style="text-align: center;">
+                <div class="card-icon" style="font-size: 3rem;">📊</div>
+                <div class="card-label">Pandas</div>
+                <div class="card-desc">Data manipulation, cleaning, and transformation</div>
+            </div>
+            <div class="counter-card" style="text-align: center;">
+                <div class="card-icon" style="font-size: 3rem;">📈</div>
+                <div class="card-label">Matplotlib</div>
+                <div class="card-desc">Custom dark-themed visualizations and plots</div>
+            </div>
+            <div class="counter-card" style="text-align: center;">
+                <div class="card-icon" style="font-size: 3rem;">🎨</div>
+                <div class="card-label">Seaborn</div>
+                <div class="card-desc">Statistical visualizations and heatmaps</div>
+            </div>
+        </div>
+    </section>
+    <footer class="footer">
+        <div class="footer-logo neon-sign">The Data Lounge</div>
+        <p class="footer-text">
+            Task 2: Unemployment Analysis with Python<br>
+            Oasis Infobyte Data Science Internship<br>
+            Crafted with code, caffeine, and a touch of neon
+        </p>
+        <div class="footer-links">
+            <a href="https://github.com/vishalkadwe96/OIBSIP" target="_blank">GitHub</a>
+            <a href="https://www.linkedin.com/in/vishalkadwe" target="_blank">LinkedIn</a>
+            <a href="#home">Back to Top</a>
+        </div>
+        <div class="copyright">
+            Built by Vishal Kadwe | Oasis Infobyte Data Science Internship
+        </div>
+    </footer>
+    <script>
+        const cursor = document.getElementById('cursor');
+        const cursorDot = document.getElementById('cursorDot');
+        let mouseX = 0, mouseY = 0, cursorX = 0, cursorY = 0, dotX = 0, dotY = 0;
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+        function animateCursor() {
+            cursorX += (mouseX - cursorX) * 0.15;
+            cursorY += (mouseY - cursorY) * 0.15;
+            dotX += (mouseX - dotX) * 0.35;
+            dotY += (mouseY - dotY) * 0.35;
+            cursor.style.left = cursorX - 10 + 'px';
+            cursor.style.top = cursorY - 10 + 'px';
+            cursorDot.style.left = dotX - 3 + 'px';
+            cursorDot.style.top = dotY - 3 + 'px';
+            requestAnimationFrame(animateCursor);
+        }
+        animateCursor();
+        document.querySelectorAll('a, .counter-card, .chart-frame, .bottle, .timeline-content').forEach(el => {
+            el.addEventListener('mouseenter', () => cursor.classList.add('hover'));
+            el.addEventListener('mouseleave', () => cursor.classList.remove('hover'));
+        });
+        const bubbleContainer = document.getElementById('bubbles');
+        for (let i = 0; i < 50; i++) {
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble';
+            const size = Math.random() * 12 + 4;
+            bubble.style.width = size + 'px';
+            bubble.style.height = size + 'px';
+            bubble.style.left = Math.random() * 100 + 'vw';
+            bubble.style.animationDuration = (Math.random() * 12 + 8) + 's';
+            bubble.style.animationDelay = (Math.random() * 10) + 's';
+            bubbleContainer.appendChild(bubble);
+        }
+        const topStates = [
+            { name: 'Tripura', rate: 27.1, height: '95%' },
+            { name: 'Haryana', rate: 23.4, height: '85%' },
+            { name: 'Himachal', rate: 21.8, height: '80%' },
+            { name: 'Rajasthan', rate: 19.2, height: '72%' },
+            { name: 'Jharkhand', rate: 17.5, height: '65%' },
+            { name: 'Delhi', rate: 16.8, height: '62%' },
+            { name: 'J&K', rate: 15.4, height: '58%' },
+            { name: 'Bihar', rate: 14.8, height: '55%' },
+            { name: 'Telangana', rate: 14.2, height: '53%' },
+            { name: 'Kerala', rate: 13.9, height: '52%' }
+        ];
+        const bottomStates = [
+            { name: 'Odisha', rate: 5.2, height: '25%' },
+            { name: 'Assam', rate: 5.8, height: '28%' },
+            { name: 'Gujarat', rate: 6.1, height: '30%' },
+            { name: 'Karnataka', rate: 6.4, height: '32%' },
+            { name: 'Maharashtra', rate: 6.9, height: '35%' }
+        ];
+        function renderBottles(containerId, data) {
+            const container = document.getElementById(containerId);
+            data.forEach((state, i) => {
+                const bottle = document.createElement('div');
+                bottle.className = 'bottle';
+                bottle.innerHTML = `
+                    <div class="bottle-shape" style="height: ${state.height};"></div>
+                    <div class="bottle-value">${state.rate}%</div>
+                    <div class="bottle-label">${state.name}</div>
+                `;
+                bottle.style.animationDelay = (i * 0.1) + 's';
+                container.appendChild(bottle);
+            });
+        }
+        renderBottles('topShelf', topStates);
+        renderBottles('bottomShelf', bottomStates);
+        gsap.registerPlugin(ScrollTrigger);
+        gsap.from('.hero-content > *', {
+            y: 60, opacity: 0, duration: 1, stagger: 0.2, ease: 'power3.out'
+        });
+        gsap.utils.toArray('.section-title').forEach(title => {
+            gsap.from(title, {
+                scrollTrigger: { trigger: title, start: 'top 85%', toggleActions: 'play none none none' },
+                y: 40, opacity: 0, duration: 0.8, ease: 'power3.out'
+            });
+        });
+        gsap.utils.toArray('.counter-grid').forEach(grid => {
+            gsap.from(grid.children, {
+                scrollTrigger: { trigger: grid, start: 'top 80%' },
+                y: 50, opacity: 0, duration: 0.6, stagger: 0.15, ease: 'power3.out'
+            });
+        });
+        gsap.utils.toArray('.chart-frame').forEach((frame, i) => {
+            gsap.from(frame, {
+                scrollTrigger: { trigger: frame, start: 'top 85%' },
+                y: 60, opacity: 0, duration: 0.7, delay: i * 0.1, ease: 'power3.out'
+            });
+        });
+        gsap.utils.toArray('.timeline-item').forEach((item, i) => {
+            gsap.from(item.querySelector('.timeline-content'), {
+                scrollTrigger: { trigger: item, start: 'top 80%' },
+                x: i % 2 === 0 ? -50 : 50, opacity: 0, duration: 0.8, ease: 'power3.out'
+            });
+        });
+        gsap.utils.toArray('.shelf').forEach(shelf => {
+            gsap.from(shelf, {
+                scrollTrigger: { trigger: shelf, start: 'top 80%' },
+                y: 40, opacity: 0, duration: 0.8, ease: 'power3.out'
+            });
+        });
+        gsap.from('.chalkboard', {
+            scrollTrigger: { trigger: '.chalkboard', start: 'top 80%' },
+            scale: 0.95, opacity: 0, duration: 1, ease: 'power3.out'
+        });
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html>
